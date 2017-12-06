@@ -3,15 +3,15 @@
 namespace Statamic\Addons\Feed;
 
 use SimpleXMLElement;
+use Statamic\API\Arr;
 use Statamic\API\URL;
-use Statamic\API\User;
+use Statamic\API\Data;
 use Statamic\API\Parse;
 use Statamic\API\Config;
 use Statamic\View\Modify;
 use Statamic\API\Collection;
 use Statamic\Extend\Controller;
 use Statamic\Data\Entries\Entry;
-//use Statamic\Contracts\Imaging\UrlBuilder;
 
 class FeedController extends Controller
 {
@@ -72,7 +72,7 @@ class FeedController extends Controller
             $entryXml = $atom->addChild('entry');
 
             $entryXml->addChild('id', 'urn:uuid:' . $entry->id());
-            $entryXml->addChild('title', (string)Modify::value($entry->get('title'))->cdata());
+            $entryXml->addChild('title', htmlspecialchars(Modify::value($entry->get('title'))->cdata()));
             $entryXml->addChild('link')->addAttribute('href', $entry->absoluteUrl());
             $entryXml->addChild('updated', $entry->date()->toRfc3339String());
             $entryXml->addChild('summary', htmlspecialchars(Modify::value($this->getContent($entry))->fullUrls()->cdata()))
@@ -113,14 +113,6 @@ class FeedController extends Controller
     private function getContent(Entry $entry)
     {
         if ($this->getConfigBool('custom_content', false)) {
-//            $content = collect($entry->get('new_content'))->reduce(function ($content, $data) {
-//                if ($data['type'] === 'text') {
-//                    return $content . $this->getText($data);
-//                } elseif ($data['type'] === 'media') {
-//                    return $content . $this->getMedia($data);
-//                }
-//            });
-
             $content = Parse::template($this->getConfig('content'), $entry->data());
         } else {
             $content = $entry->parseContent();
@@ -129,25 +121,12 @@ class FeedController extends Controller
         return $content;
     }
 
-    private function makeName($id)
-    {
-        $author = User::find($id);
+    private function makeName($id) {
+        $author = Data::find($id);
 
-        return ucfirst($author->get('first_name')) . ' ' . ucfirst($author->get('last_name'));
+        $name_fields = $this->getConfig('name_fields');
+
+        return implode(' ',
+                       array_merge(array_flip($name_fields), Arr::only($author->data(), $name_fields)));
     }
-
-//    private function getText($data)
-//    {
-//        return $data['text'];
-//    }
-//
-//    private function getMedia($data)
-//    {
-//        $media = $data['media'] ?? [];
-//        $builder = app(UrlBuilder::class);
-//
-//        return collect($media)->reduce(function ($content, $asset) use ($builder) {
-//            return $content . Modify::value($builder->build($asset, ['fit' => 'crop']))->image([]);
-//        });
-//    }
 }
