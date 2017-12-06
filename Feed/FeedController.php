@@ -73,15 +73,12 @@ class FeedController extends Controller
 
             $entryXml->addChild('id', 'urn:uuid:' . $entry->id());
             $entryXml->addChild('title', htmlspecialchars(Modify::value($entry->get('title'))->cdata()));
+            $entryXml->addChild('author')
+                ->addChild('name', $this->makeName($entry->get($this->author_field)));
             $entryXml->addChild('link')->addAttribute('href', $entry->absoluteUrl());
             $entryXml->addChild('updated', $entry->date()->toRfc3339String());
             $entryXml->addChild('summary', htmlspecialchars(Modify::value($this->getContent($entry))->fullUrls()->cdata()))
                 ->addAttribute('type', 'html');
-
-            if ($entry->has($this->author_field)) {
-                $entryXml->addChild('author')
-                    ->addChild('name', $this->makeName($entry->get($this->author_field)));
-            }
         });
 
         return response($atom->asXML(), 200, ['Content-Type' => 'application/atom+xml']);
@@ -122,7 +119,7 @@ class FeedController extends Controller
     }
 
     private function makeName($id) {
-        $name = '';
+        $name = 'Anonymous';
 
         if ($author = Data::find($id)) {
             $name_fields = $this->getConfig('name_fields');
