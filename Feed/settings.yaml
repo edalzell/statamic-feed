@@ -2,11 +2,14 @@ fields:
   collection:
     type: collections
     max_items: 1
-    width: 50
+    width: 33
     validate: required
   author_field:
     type: text
-    width: 50
+    width: 33
+  name_fields:
+    type: list
+    width: 33
   custom_content:
     type: toggle
     default: false
