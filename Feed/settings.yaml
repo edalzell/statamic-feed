@@ -1,0 +1,40 @@
+fields:
+  collection:
+    type: collections
+    max_items: 1
+    width: 50
+    validate: required
+  author_field:
+    type: text
+    width: 50
+  custom_content:
+    type: toggle
+    default: false
+    width: 25
+  content:
+    type: textarea
+    width: 75
+  json_title:
+    type: text
+    width: 50
+    display: JSON Title
+    instruct: Title of your JSON feed
+  json_url:
+    type: text
+    width: 50
+    display: JSON Feed URL
+    instruct: URL of your JSON feed
+    validate: required
+  atom_title:
+    type: text
+    width: 50
+    display: Atom Title
+    instruct: Title of your Atom feed
+  atom_url:
+    type: text
+    width: 50
+    display: Atom Feed URL
+    instruct: URL of your Atom feed
+    validate: required
+  discovery:
+    type: list
