@@ -122,11 +122,15 @@ class FeedController extends Controller
     }
 
     private function makeName($id) {
-        $author = Data::find($id);
+        $name = '';
 
-        $name_fields = $this->getConfig('name_fields');
+        if ($author = Data::find($id)) {
+            $name_fields = $this->getConfig('name_fields');
+            $name = implode(' ',
+                            array_merge(array_flip($name_fields),
+                                        Arr::only($author->data(), $name_fields)));
+        }
 
-        return implode(' ',
-                       array_merge(array_flip($name_fields), Arr::only($author->data(), $name_fields)));
+        return $name;
     }
 }
