@@ -10,8 +10,11 @@ use Statamic\API\Parse;
 use Statamic\API\Config;
 use Statamic\View\Modify;
 use Statamic\API\Collection;
+use Illuminate\Http\Request;
+use Statamic\Routing\Router;
 use Statamic\Extend\Controller;
 use Statamic\Data\Entries\Entry;
+
 
 class FeedController extends Controller
 {
@@ -72,13 +75,15 @@ class FeedController extends Controller
             $entryXml = $atom->addChild('entry');
 
             $entryXml->addChild('id', 'urn:uuid:' . $entry->id());
-            $entryXml->addChild('title', htmlspecialchars(Modify::value($entry->get('title'))->cdata()));
+            $entryXml->addChild('title', htmlspecialchars($entry->get('title')));
             $entryXml->addChild('author')
                 ->addChild('name', $this->makeName($entry->get($this->author_field)));
             $entryXml->addChild('link')->addAttribute('href', $entry->absoluteUrl());
             $entryXml->addChild('updated', $entry->date()->toRfc3339String());
-            $entryXml->addChild('summary', htmlspecialchars(Modify::value($this->getContent($entry))->fullUrls()->cdata()))
-                ->addAttribute('type', 'html');
+            if ($this->getContent($entry)) {
+                $entryXml->addChild('content', htmlspecialchars(Modify::value($this->getContent($entry))->fullUrls()))
+                    ->addAttribute('type', 'html');
+            }
         });
 
         return response($atom->asXML(), 200, ['Content-Type' => 'application/atom+xml']);
