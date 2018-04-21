@@ -2,61 +2,84 @@
 
 namespace Statamic\Addons\Feed;
 
+use Illuminate\Http\Request;
 use SimpleXMLElement;
 use Statamic\API\Arr;
-use Statamic\API\URL;
-use Statamic\API\Data;
-use Statamic\API\Parse;
 use Statamic\API\Config;
-use Statamic\View\Modify;
-use Statamic\API\Collection;
-use Illuminate\Http\Request;
-use Statamic\Routing\Router;
-use Statamic\Extend\Controller;
+use Statamic\API\Data;
+use Statamic\API\Entry as EntryAPI;
+use Statamic\API\Parse;
+use Statamic\API\URL;
 use Statamic\Data\Entries\Entry;
-
+use Statamic\Extend\Controller;
+use Statamic\View\Modify;
 
 class FeedController extends Controller
 {
-    /** @var string */
-    private $author_field;
-
-    /** @var \Statamic\Data\Entries\EntryCollection */
-    private $entries;
+    /** @var array */
+    private $feedConfig;
 
     /** @var string */
-    private $site_url;
+    private $title;
 
     /** @var string */
     private $feed_url;
 
-    public function init() {
-        $this->author_field = $this->getConfig('author_field', 'author');
-        $this->site_url = URL::makeAbsolute(Config::getSiteUrl());
-        $this->feed_url = request()->fullUrl();
+    /** @var string */
+    private $site_url;
 
-        $this->entries = Collection::whereHandle('blog')->entries()->limit(20);
+    /** @var array */
+    private $name_fields;
+
+    /** @var string */
+    private $author_field;
+
+    /** @var string */
+    private $custom_content;
+
+    /** @var string */
+    private $content;
+
+    /** @var \Statamic\Data\Entries\EntryCollection */
+    private $entries;
+
+    public function __construct(Request $request)
+    {
+        $config = collect($this->getConfig('feeds', []))->first(function ($key, $feed) use ($request) {
+            return $feed['route'] == $request->getPathInfo();
+        });
+
+        $this->title = array_get($config, 'title');
+        $this->name_fields = array_get($config, 'name_fields', []);
+        $this->author_field = array_get($config, 'author_field');
+        $this->custom_content = array_get($config, 'custom_content', false);
+        $this->content = array_get($config, 'content');
+        $this->site_url = URL::makeAbsolute(Config::getSiteUrl());
+        $this->feed_url = $request->fullUrl();
+        $this->entries = EntryAPI::whereCollection(array_get($config, 'collections', []))
+            ->multisort('date:desc|title:asc')
+            ->limit(20);
     }
 
     public function json()
     {
         return [
             'version' => 'https://jsonfeed.org/version/1',
-            'title' => $this->getConfig('json_title', 'JSON Feed'),
+            'title' => $this->title,
             'home_page_url' => $this->site_url,
             'feed_url' => $this->feed_url,
-            'items' => $this->getItems()
+            'items' => $this->getItems(),
         ];
     }
 
-    public function atom() {
-
+    public function atom()
+    {
         $atom = new SimpleXMLElement('<feed xmlns="http://www.w3.org/2005/Atom"></feed>');
-        $atom->addAttribute( 'xmlns:xml:lang', 'en');
-        $atom->addAttribute( 'xmlns:xml:base', $this->site_url);
+        $atom->addAttribute('xmlns:xml:lang', 'en');
+        $atom->addAttribute('xmlns:xml:base', $this->site_url);
 
         $atom->addChild('id', $this->feed_url);
-        $atom->addChild('title', htmlspecialchars($this->getConfig('atom_title', 'Atom Feed')));
+        $atom->addChild('title', htmlspecialchars($this->title));
         $atom->addChild('updated', $this->entries->first()->date()->toRfc3339String());
 
         $link = $atom->addChild('link');
@@ -64,7 +87,7 @@ class FeedController extends Controller
         $link->addAttribute('href', $this->feed_url);
         $link->addAttribute('xmlns', 'http://www.w3.org/2005/Atom');
 
-        collect($this->getConfig('discovery', []))->each(function($url, $key) use ($atom) {
+        collect($this->getConfig('discovery', []))->each(function ($url, $key) use ($atom) {
             $link = $atom->addChild('link');
             $link->addAttribute('rel', 'hub');
             $link->addAttribute('href', '//' . $url);
@@ -97,11 +120,11 @@ class FeedController extends Controller
                 'title' => $entry->get('title'),
                 'url' => $entry->absoluteUrl(),
                 'date_published' => $entry->date()->toRfc3339String(),
-                'content_html' => (string)Modify::value($this->getContent($entry))->fullUrls()
+                'content_html' => (string) Modify::value($this->getContent($entry))->fullUrls(),
             ];
 
-            if ($entry->has('author')) {
-                $item['author'] = ['name' => $this->makeName($entry->get('author'))];
+            if ($entry->has($this->author_field)) {
+                $item['author'] = ['name' => $this->makeName($entry->get($this->author_field))];
             }
 
             if ($entry->has('link')) {
@@ -114,8 +137,8 @@ class FeedController extends Controller
 
     private function getContent(Entry $entry)
     {
-        if ($this->getConfigBool('custom_content', false)) {
-            $content = Parse::template($this->getConfig('content'), $entry->data());
+        if ($this->custom_content) {
+            $content = Parse::template($this->content, $entry->data());
         } else {
             $content = $entry->parseContent();
         }
@@ -123,14 +146,19 @@ class FeedController extends Controller
         return $content;
     }
 
-    private function makeName($id) {
+    private function makeName($id)
+    {
         $name = 'Anonymous';
 
         if ($author = Data::find($id)) {
-            $name_fields = $this->getConfig('name_fields');
-            $name = implode(' ',
-                            array_merge(array_flip($name_fields),
-                                        Arr::only($author->data(), $name_fields)));
+            $this->name_fields;
+            $name = implode(
+                ' ',
+                array_merge(
+                    array_flip($this->name_fields),
+                    Arr::only($author->data(), $this->name_fields)
+                )
+            );
         }
 
         return $name;

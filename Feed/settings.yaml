@@ -1,43 +1,36 @@
 fields:
-  collection:
-    type: collections
-    max_items: 1
-    width: 33
-    validate: required
-  author_field:
-    type: text
-    width: 33
-  name_fields:
-    type: list
-    width: 33
-  custom_content:
-    type: toggle
-    default: false
-    width: 25
-  content:
-    type: textarea
-    width: 75
-  json_title:
-    type: text
-    width: 50
-    display: JSON Title
-    instruct: Title of your JSON feed
-  json_url:
-    type: text
-    width: 50
-    display: JSON Feed URL
-    instruct: URL of your JSON feed
-    validate: required
-  atom_title:
-    type: text
-    width: 50
-    display: Atom Title
-    instruct: Title of your Atom feed
-  atom_url:
-    type: text
-    width: 50
-    display: Atom Feed URL
-    instruct: URL of your Atom feed
-    validate: required
+  feeds:
+    type: grid
+    display: Locations
+    fields:
+      route:
+        type: text
+        width: 33
+      type:
+        type: select
+        display: Type
+        options:
+          json: JSON
+          atom: ATOM
+        width: 33
+      title:
+        type: text
+        instruct: Feed title
+        width: 33
+      collections:
+        type: collections
+        width: 33
+      author_field:
+        type: text
+        width: 33
+      name_fields:
+        type: list
+        width: 33
+      custom_content:
+        type: toggle
+        default: false
+      content:
+        type: textarea
+    mode: stacked
   discovery:
     type: list

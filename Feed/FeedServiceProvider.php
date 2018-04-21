@@ -23,23 +23,23 @@ class FeedServiceProvider extends ServiceProvider
      */
     public function boot()
     {
+        $router = app('router');
+        $routes = new RouteCollection();
+
         // Here we get all the current routes, then add our feed routes right before the catch-all segment route
-        $old_routes = app('router')->getRoutes();
-        $new_routes = new RouteCollection();
-        foreach ($old_routes as $i => $route) {
+        foreach ($router->getRoutes() as $i => $route) {
             if ($route->getUri() == '{segments?}') {
-                $json_feed_route = new Route(['GET'],
-                                             Str::removeLeft($this->getConfig('json_url','feed.json'), '/'),
-                                             ['uses' => '\Statamic\Addons\Feed\FeedController@json']);
-                $new_routes->add($json_feed_route);
-                $atom_feed_route = new Route(['GET'],
-                                             Str::removeLeft($this->getConfig('atom_url','feed'), '/'),
-                                             ['uses' => '\Statamic\Addons\Feed\FeedController@atom']);
-                $new_routes->add($atom_feed_route);
+                collect($this->getConfig('feeds', []))->each(function ($r, $key) use ($routes) {
+                    $feed_route = new Route(['GET'],
+                                            $r['route'],
+                                            ['uses' => '\Statamic\Addons\Feed\FeedController@' . $r['type']]);
+                    //feed_route->middleware('staticcache');
+                    $routes->add($feed_route);
+                });
             }
-            $new_routes->add($route);
+            $routes->add($route);
         }
 
-        app('router')->setRoutes($new_routes);
+        $router->setRoutes($routes);
     }
 }
