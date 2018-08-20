@@ -1,6 +1,6 @@
 name: Feed
-version: 1.0
+version: 1.1.1
 description: Add JSON and/or Atom feeds to your site
-url: https://github.com/edalzell/statamic-powertools
+url: https://github.com/edalzell/statamic-feed
 developer: Erin Dalzell
 developer_url: https://github.com/edalzell
