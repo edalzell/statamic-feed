@@ -2,17 +2,17 @@
 
 namespace Statamic\Addons\Feed;
 
-use Illuminate\Http\Request;
 use SimpleXMLElement;
 use Statamic\API\Arr;
-use Statamic\API\Config;
-use Statamic\API\Data;
-use Statamic\API\Entry as EntryAPI;
-use Statamic\API\Parse;
 use Statamic\API\URL;
-use Statamic\Data\Entries\Entry;
-use Statamic\Extend\Controller;
+use Statamic\API\Data;
+use Statamic\API\Parse;
+use Statamic\API\Config;
 use Statamic\View\Modify;
+use Illuminate\Http\Request;
+use Statamic\Extend\Controller;
+use Statamic\Data\Entries\Entry;
+use Statamic\API\Entry as EntryAPI;
 
 class FeedController extends Controller
 {
@@ -57,6 +57,8 @@ class FeedController extends Controller
         $this->site_url = URL::makeAbsolute(Config::getSiteUrl());
         $this->feed_url = $request->fullUrl();
         $this->entries = EntryAPI::whereCollection(array_get($config, 'collections', []))
+            ->removeUnpublished()
+            ->removeFuture()
             ->multisort('date:desc|title:asc')
             ->limit(20);
     }
