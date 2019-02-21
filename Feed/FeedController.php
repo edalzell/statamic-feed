@@ -82,7 +82,10 @@ class FeedController extends Controller
 
         $atom->addChild('id', $this->feed_url);
         $atom->addChild('title', htmlspecialchars($this->title));
-        $atom->addChild('updated', $this->entries->first()->date()->toRfc3339String());
+
+        if ($this->entries->count()) {
+            $atom->addChild('updated', $this->entries->first()->date()->toRfc3339String());
+        }
 
         $link = $atom->addChild('link');
         $link->addAttribute('rel', 'self');
