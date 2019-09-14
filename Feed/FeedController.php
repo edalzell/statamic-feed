@@ -6,6 +6,7 @@ use SimpleXMLElement;
 use Statamic\API\Arr;
 use Statamic\API\URL;
 use Statamic\API\Data;
+use Statamic\API\File;
 use Statamic\API\Parse;
 use Statamic\API\Config;
 use Statamic\View\Modify;
@@ -13,6 +14,7 @@ use Illuminate\Http\Request;
 use Statamic\Extend\Controller;
 use Statamic\Data\Entries\Entry;
 use Statamic\API\Entry as EntryAPI;
+use Statamic\View\Antlers\Template;
 
 class FeedController extends Controller
 {
@@ -38,7 +40,7 @@ class FeedController extends Controller
     private $custom_content;
 
     /** @var string */
-    private $content;
+    private $partial;
 
     /** @var \Statamic\Data\Entries\EntryCollection */
     private $entries;
@@ -53,7 +55,7 @@ class FeedController extends Controller
         $this->name_fields = array_get($config, 'name_fields', []);
         $this->author_field = array_get($config, 'author_field');
         $this->custom_content = array_get($config, 'custom_content', false);
-        $this->content = array_get($config, 'content');
+        $this->partial = array_get($config, 'partial');
         $this->site_url = URL::makeAbsolute(Config::getSiteUrl());
         $this->feed_url = $request->fullUrl();
         $this->entries = EntryAPI::whereCollection(array_get($config, 'collections', []))
@@ -92,6 +94,10 @@ class FeedController extends Controller
         $link->addAttribute('href', $this->feed_url);
         $link->addAttribute('xmlns', 'http://www.w3.org/2005/Atom');
 
+        if ($author = $this->getConfig('feed_author')) {
+            $atom->addChild('author')->addChild('name', $author);
+        }
+
         collect($this->getConfig('discovery', []))->each(function ($url, $key) use ($atom) {
             $link = $atom->addChild('link');
             $link->addAttribute('rel', 'hub');
@@ -104,8 +110,10 @@ class FeedController extends Controller
 
             $entryXml->addChild('id', 'urn:uuid:' . $entry->id());
             $entryXml->addChild('title', htmlspecialchars($entry->get('title')));
-            $entryXml->addChild('author')
+            if ($this->author_field) {
+                $entryXml->addChild('author')
                 ->addChild('name', $this->makeName($entry->get($this->author_field)));
+            }
             $entryXml->addChild('link')->addAttribute('href', $entry->absoluteUrl());
             $entryXml->addChild('updated', $entry->date()->toRfc3339String());
             if ($this->getContent($entry)) {
@@ -143,12 +151,10 @@ class FeedController extends Controller
     private function getContent(Entry $entry)
     {
         if ($this->custom_content) {
-            $content = Parse::template($this->content, $entry->data());
+            return Parse::template(File::disk('theme')->get("partials/{$this->partial}.html"), $entry->toArray());
         } else {
-            $content = $entry->parseContent();
+            return $entry->parseContent();
         }
-
-        return $content;
     }
 
     private function makeName($id)
