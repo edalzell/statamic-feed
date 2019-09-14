@@ -1,4 +1,12 @@
 fields:
+  feed_author:
+    type: text
+    display: Feed Author
+    instructions: "If you don't use individual authors, fill in this field with the company name or author"
+    width: 50
+  discovery:
+    type: list
+    width: 50
   feeds:
     type: grid
     display: Locations
@@ -18,19 +26,27 @@ fields:
         instruct: Feed title
         width: 33
       collections:
+        instructions: 'Which collection(s) put in the feed'
         type: collections
         width: 33
       author_field:
+        display: Author Field
+        instructions: 'Entry field that references the author'
         type: text
         width: 33
       name_fields:
+        display: Name Fields
+        instructions: 'User fields used to create the name'
         type: list
         width: 33
       custom_content:
         type: toggle
+        display: Custom Content
         default: false
-      content:
-        type: textarea
+        width: 50
+      partial:
+        type: suggest
+        mode: feed.partial
+        max_items: 1
+        width: 50
     mode: stacked
-  discovery:
-    type: list
