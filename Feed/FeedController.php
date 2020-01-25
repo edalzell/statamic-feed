@@ -48,7 +48,7 @@ class FeedController extends Controller
     public function __construct(Request $request)
     {
         $config = collect($this->getConfig('feeds', []))->first(function ($key, $feed) use ($request) {
-            return $feed['route'] == $request->getPathInfo();
+            return ltrim($feed['route'], '/') == ltrim($request->getPathInfo(), '/');
         });
 
         $this->title = array_get($config, 'title');
